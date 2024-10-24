@@ -1,4 +1,5 @@
-import requests
+import urllib.request
+import json
 import socket
 import pymongo
 import datetime
@@ -8,19 +9,24 @@ client = pymongo.MongoClient("mongodb+srv://yakubuanas04:KOFEiHoWAUS2J0Zy@cluste
 db = client['internet_connection_db']
 collection = db['connection_records']
 
-# Function to get public IP and location data
+# Function to get public IP and location data using urllib
 def get_location_data():
     try:
-        ip_info = requests.get('https://ipinfo.io/json').json()
-        location_data = {
-            'ip': ip_info.get('ip'),
-            'city': ip_info.get('city'),
-            'region': ip_info.get('region'),
-            'country': ip_info.get('country'),
-            'loc': ip_info.get('loc'),  # Latitude and longitude
-            'org': ip_info.get('org')   # Organization/ISP
-        }
-        return location_data
+        # Open the URL and get the response from ipinfo.io
+        with urllib.request.urlopen('https://ipinfo.io/json') as response:
+            data = response.read()  # Read the response data
+            ip_info = json.loads(data)  # Convert the data from JSON
+
+            # Extract location data
+            location_data = {
+                'ip': ip_info.get('ip'),
+                'city': ip_info.get('city'),
+                'region': ip_info.get('region'),
+                'country': ip_info.get('country'),
+                'loc': ip_info.get('loc'),  # Latitude and longitude
+                'org': ip_info.get('org')   # Organization/ISP
+            }
+            return location_data
     except Exception as e:
         print(f"Error fetching location: {e}")
         return None
