@@ -2,6 +2,8 @@ import time
 import socket
 import pymongo
 import datetime
+from dotenv import load_dotenv
+import os
 
 # MongoDB Atlas Connection
 client = pymongo.MongoClient("mongodb+srv://yakubuanas04:KOFEiHoWAUS2J0Zy@cluster0.z5fnu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
@@ -20,7 +22,7 @@ def is_connected():
     except socket.error:
         return False
 
-# Function to log the hours spent on the computer
+# Function to log hours spent in the database
 def log_hours_spent(start_time, end_time):
     total_time_spent = (end_time - start_time).total_seconds() / 3600  # convert seconds to hours
     
@@ -34,9 +36,10 @@ def log_hours_spent(start_time, end_time):
     collection.insert_one(record)
     print(f"Record saved: {record}")
 
-# Main function to track and log computer usage
+# Main function to track and log computer usage every 10 minutes
 def track_usage():
     start_time = None
+    accumulated_time = 0  # Tracks time in seconds
 
     try:
         while True:
@@ -45,6 +48,12 @@ def track_usage():
                     start_time = get_timestamp()
                     print(f"Internet connected. Tracking started at: {start_time}")
                 else:
+                    accumulated_time += 10  # Add 10 seconds to accumulated time
+                    if accumulated_time >= 600:  # Check if 10 minutes (600 seconds) have passed
+                        end_time = get_timestamp()
+                        log_hours_spent(start_time, end_time)
+                        start_time = get_timestamp()  # Reset start time for the next interval
+                        accumulated_time = 0  # Reset accumulated time
                     print("Internet is connected; tracking continues...")
             else:
                 if start_time:
@@ -52,6 +61,7 @@ def track_usage():
                     print(f"Internet disconnected at: {end_time}. Logging usage.")
                     log_hours_spent(start_time, end_time)
                     start_time = None
+                    accumulated_time = 0  # Reset accumulated time
                 else:
                     print("Waiting for internet connection...")
 
