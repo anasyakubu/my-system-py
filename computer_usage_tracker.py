@@ -15,7 +15,6 @@ def get_timestamp():
 # Function to check if connected to the internet
 def is_connected():
     try:
-        # Try to resolve hostname -- tells us if we're connected to the internet
         socket.gethostbyname("www.google.com")
         return True
     except socket.error:
@@ -23,45 +22,44 @@ def is_connected():
 
 # Function to log the hours spent on the computer
 def log_hours_spent(start_time, end_time):
-    # Calculate total time spent in hours
     total_time_spent = (end_time - start_time).total_seconds() / 3600  # convert seconds to hours
     
-    # Create a record for the database
     record = {
-        'date': start_time.date(),  # Log the date
+        'date': start_time.date(),
         'start_time': start_time,
         'end_time': end_time,
-        'hours_spent': round(total_time_spent, 2)  # Save hours with 2 decimal places
+        'hours_spent': round(total_time_spent, 2)
     }
 
-    # Save the record to the MongoDB database
     collection.insert_one(record)
     print(f"Record saved: {record}")
 
 # Main function to track and log computer usage
 def track_usage():
-    # Start time when the computer is turned on or script begins running
-    start_time = get_timestamp()
-    print(f"Computer usage started at: {start_time}")
+    start_time = None
 
     try:
         while True:
-            # Check every 10 seconds if the computer is connected to the internet
-            time.sleep(10)
             if is_connected():
-                # End time when connecting to the internet
-                end_time = get_timestamp()
-                print(f"Connected to the internet at: {end_time}")
-                
-                # Log the time spent on the computer and save it to the database
-                log_hours_spent(start_time, end_time)
-                
-                # Reset the start time after logging
-                start_time = get_timestamp()
+                if start_time is None:
+                    start_time = get_timestamp()
+                    print(f"Internet connected. Tracking started at: {start_time}")
+                else:
+                    print("Internet is connected; tracking continues...")
+            else:
+                if start_time:
+                    end_time = get_timestamp()
+                    print(f"Internet disconnected at: {end_time}. Logging usage.")
+                    log_hours_spent(start_time, end_time)
+                    start_time = None
+                else:
+                    print("Waiting for internet connection...")
+
+            time.sleep(10)  # Check every 10 seconds
     except KeyboardInterrupt:
-        # If the script is stopped manually, log the current session
-        end_time = get_timestamp()
-        log_hours_spent(start_time, end_time)
+        if start_time:
+            end_time = get_timestamp()
+            log_hours_spent(start_time, end_time)
         print("Tracking stopped.")
 
 # Run the script
