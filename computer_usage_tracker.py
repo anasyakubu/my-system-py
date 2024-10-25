@@ -22,15 +22,24 @@ def is_connected():
     except socket.error:
         return False
 
-# Function to log hours spent in the database
-def log_hours_spent(start_time, end_time):
-    total_time_spent = (end_time - start_time).total_seconds() / 3600  # convert seconds to hours
+# Function to log time spent on the computer in hours, minutes, and seconds
+def log_time_spent(start_time, end_time):
+    # Calculate time spent as a timedelta
+    time_spent = end_time - start_time
+    
+    # Extract hours, minutes, and seconds from timedelta
+    hours, remainder = divmod(time_spent.total_seconds(), 3600)
+    minutes, seconds = divmod(remainder, 60)
     
     record = {
         'date': start_time.date(),
         'start_time': start_time,
         'end_time': end_time,
-        'hours_spent': round(total_time_spent, 2)
+        'time_spent': {
+            'hours': int(hours),
+            'minutes': int(minutes),
+            'seconds': int(seconds)
+        }
     }
 
     collection.insert_one(record)
@@ -51,7 +60,7 @@ def track_usage():
                     accumulated_time += 10  # Add 10 seconds to accumulated time
                     if accumulated_time >= 600:  # Check if 10 minutes (600 seconds) have passed
                         end_time = get_timestamp()
-                        log_hours_spent(start_time, end_time)
+                        log_time_spent(start_time, end_time)
                         start_time = get_timestamp()  # Reset start time for the next interval
                         accumulated_time = 0  # Reset accumulated time
                     print("Internet is connected; tracking continues...")
@@ -59,7 +68,7 @@ def track_usage():
                 if start_time:
                     end_time = get_timestamp()
                     print(f"Internet disconnected at: {end_time}. Logging usage.")
-                    log_hours_spent(start_time, end_time)
+                    log_time_spent(start_time, end_time)
                     start_time = None
                     accumulated_time = 0  # Reset accumulated time
                 else:
@@ -69,7 +78,7 @@ def track_usage():
     except KeyboardInterrupt:
         if start_time:
             end_time = get_timestamp()
-            log_hours_spent(start_time, end_time)
+            log_time_spent(start_time, end_time)
         print("Tracking stopped.")
 
 # Run the script
